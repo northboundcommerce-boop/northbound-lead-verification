@@ -1,0 +1,1 @@
+module.exports=(req,res)=>{const required=['SUPABASE_URL','SUPABASE_SERVICE_ROLE_KEY','TURNSTILE_SECRET_KEY','QUO_API_KEY'];const missing=required.filter(k=>!process.env[k]);res.status(missing.length?503:200).json({ok:missing.length===0,missing_variables:missing});};
