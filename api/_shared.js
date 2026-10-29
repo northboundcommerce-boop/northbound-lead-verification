@@ -33,7 +33,8 @@ async function captcha(token,address){
  if(!token)throw problem('Complete the security check.');
  const response=await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({secret:process.env.TURNSTILE_SECRET_KEY,response:token,remoteip:address})});
  const result=await response.json();
- if(!result.success||!['northboundcommerce.co','www.northboundcommerce.co'].includes(result.hostname))throw problem('Security check expired. Refresh and try again.');
+ if(!result.success){console.error('Turnstile verification failed:',JSON.stringify(result['error-codes']||[]));throw problem('Security check failed. Please refresh the page and try again.');}
+ if(!['northboundcommerce.co','www.northboundcommerce.co'].includes(result.hostname)){console.error('Turnstile hostname mismatch:',result.hostname||'(missing)');throw problem('Security check configuration error. Please contact us.');}
 }
 async function limit(key,max,seconds){
  const key_hash=crypto.createHash('sha256').update(key).digest('hex');
