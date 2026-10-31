@@ -5,9 +5,10 @@ module.exports=async(req,res)=>{
   const d=req.body||{},id=clean(d.request_id,80),code=clean(d.code,10);
   if(!/^[0-9a-f-]{36}$/.test(id)||!/^[0-9]{6}$/.test(code))throw problem('Enter your six-digit code.');
   await captcha(d.turnstile_token,ip(req));
-  const rows=await db('michigan_leads?id=eq.'+encodeURIComponent(id)+'&select=id,otp_hash,otp_attempts,expires_at,phone_verified');
+  const rows=await db('michigan_leads?id=eq.'+encodeURIComponent(id)+'&select=id,otp_hash,otp_attempts,expires_at,phone_verified,event_id');
   const row=rows[0];
-  if(!row||row.phone_verified||Date.parse(row.expires_at)<Date.now()||row.otp_attempts>=5||!row.otp_hash)throw problem('Code expired or attempts exceeded. Request a new code.');
+  if(row&&row.phone_verified){res.status(200).json({success:true,verified:true,event_id:row.event_id,already_verified:true});return;}
+  if(!row||Date.parse(row.expires_at)<Date.now()||row.otp_attempts>=5||!row.otp_hash)throw problem('Code expired or attempts exceeded. Request a new code.');
   const expected=Buffer.from(row.otp_hash,'hex'),actual=Buffer.from(otpHash(id,code),'hex');
   if(expected.length!==actual.length||!crypto.timingSafeEqual(expected,actual)){
    await db('michigan_leads?id=eq.'+encodeURIComponent(id),'PATCH',{otp_attempts:row.otp_attempts+1});
